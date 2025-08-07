@@ -1,6 +1,5 @@
 package ac.su.kdt.beusermanagementservice.entity;
 
-
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -8,57 +7,63 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.sql.Timestamp;
-import java.util.UUID;
 
 @Entity
-@Table(name="users")
+@Table(name = "`user`") // SQL 예약어 'user'와의 충돌을 피하기 위해 백틱(`) 사용
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // 파라미터가 없는 생성자를 생성
+@NoArgsConstructor
 public class User {
 
     @Id
-    @Column(name="id", nullable = false, columnDefinition = "VARCHAR(36)")
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(name="email", nullable = false, unique = true)
+    @Column(name = "auth0_id", unique = true, nullable = false)
+    private String auth0Id;
+
+    @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(name="password_hash", nullable = false)
-    private String passwordHash;
-
-    @Column(name="name", nullable = false)
+    @Column(nullable = false)
     private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name="role", nullable = false)
-    private UserRole role;
+    private String phone;
 
-    @Column(name="current_plan_id", columnDefinition = "VARCHAR(36)")
-    private String currentPlanId;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role = Role.STUDENT;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Status status = Status.ACTIVE;
+
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
 
     @CreationTimestamp
-    @Column(name="created_at", nullable = false, updatable=false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Timestamp createdAt;
 
     @UpdateTimestamp
-    @Column(name="updated_at", nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private Timestamp updatedAt;
 
-    @Column(name="is_active", nullable = false)
-    private Boolean isActive = true;
+    @Column(name = "last_login_at")
+    private Timestamp lastLoginAt;
 
-    public enum UserRole {
-        ADMIN, USER, TEAM_ADMIN
+    public User(String auth0Id, String email, String name) {
+        this.auth0Id = auth0Id;
+        this.email = email;
+        this.name = name;
+        this.role = Role.STUDENT;
+        this.status = Status.ACTIVE;
     }
 
-    public static User createUser(String email, String passwordHash, String name) {
-        User user = new User();
-        user.id = UUID.randomUUID().toString();
-        user.email = email;
-        user.passwordHash = passwordHash;
-        user.name = name;
-        user.role = UserRole.USER;
-        user.isActive = true;
-        return user;
+    public enum Role {
+        STUDENT, INSTRUCTOR, ADMIN
+    }
+
+    public enum Status {
+        ACTIVE, INACTIVE, SUSPENDED
     }
 }

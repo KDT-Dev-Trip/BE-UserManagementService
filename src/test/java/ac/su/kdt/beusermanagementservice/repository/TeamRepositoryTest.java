@@ -1,6 +1,7 @@
 package ac.su.kdt.beusermanagementservice.repository;
 
 import ac.su.kdt.beusermanagementservice.entity.Team;
+import ac.su.kdt.beusermanagementservice.entity.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,20 +11,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 class TeamRepositoryTest {
-    @Autowired
-    private TeamRepository teamRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private TeamRepository teamRepository;
 
     @Test
-    @DisplayName("팀 저장 및 초대코드로 조회 테스트")
-    void saveAndFindByInviteCode() {
+    @DisplayName("팀 저장 및 고유 팀 코드로 조회 테스트")
+    void saveAndFindByTeamCode() {
         // given
-        Team newTeam = Team.createTeam("test팀","owner-id-123",10);
+        User instructor = userRepository.save(new User("auth|ins", "ins@test.com", "강사"));
+        Team newTeam = new Team("테스트팀", "UNIQUECODE123", instructor.getId());
 
         // when
         teamRepository.save(newTeam);
 
         // then
-        Team foundTeam = teamRepository.findByInviteCode(newTeam.getInviteCode()).orElseThrow();
-        assertThat(foundTeam.getId()).isEqualTo(newTeam.getId());
+        Team foundTeam = teamRepository.findByTeamCode("UNIQUECODE123").orElseThrow();
+        assertThat(foundTeam.getId()).isNotNull();
+        assertThat(foundTeam.getName()).isEqualTo("테스트팀");
+        assertThat(foundTeam.getInstructorId()).isEqualTo(instructor.getId());
     }
 }
