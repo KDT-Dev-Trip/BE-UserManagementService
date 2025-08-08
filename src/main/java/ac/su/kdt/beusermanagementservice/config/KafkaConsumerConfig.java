@@ -36,6 +36,10 @@ public class KafkaConsumerConfig {
 
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
 
+        // 기본 타입을 지정
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "ac.su.kdt.beusermanagementservice.dto.UserSignedUpEventDTO");
+        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, "false");
+
         // 설정 정보를 담은 DefaultKafkaConsumerFactory 객체를 생성하여 반환
         return new DefaultKafkaConsumerFactory<>(props);
     }
