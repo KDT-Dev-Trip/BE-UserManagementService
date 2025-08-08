@@ -4,12 +4,14 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import java.sql.Timestamp;
 
 @Entity
 @Table(name = "team_membership", uniqueConstraints = @UniqueConstraint(columnNames = {"team_id", "user_id"}))
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TeamMembership {
     @Id
