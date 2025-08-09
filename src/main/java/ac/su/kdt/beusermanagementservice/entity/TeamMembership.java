@@ -43,6 +43,12 @@ public class TeamMembership {
         this.user = user;
     }
 
+    public TeamMembership(Team team, User user, Role role) {
+        this.team = team;
+        this.user = user;
+        this.role = role;
+    }
+
     public enum Role {
         LEADER, MEMBER
     }

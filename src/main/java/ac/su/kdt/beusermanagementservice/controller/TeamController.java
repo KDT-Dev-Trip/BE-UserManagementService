@@ -1,6 +1,7 @@
 package ac.su.kdt.beusermanagementservice.controller;
 
 import ac.su.kdt.beusermanagementservice.dto.CreateTeamRequestDTO;
+import ac.su.kdt.beusermanagementservice.dto.JoinTeamRequestDTO;
 import ac.su.kdt.beusermanagementservice.dto.TeamResponseDTO;
 import ac.su.kdt.beusermanagementservice.service.TeamService;
 import jakarta.validation.Valid;
@@ -13,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/teams")
 @RequiredArgsConstructor
 public class TeamController {
-
     private final TeamService teamService;
 
     @PostMapping
@@ -28,5 +28,14 @@ public class TeamController {
         TeamResponseDTO response = teamService.createTeam(request, userId);
         // 2. 성공적인 리소스 생성을 의미하는 201 Created 상태 코드와 함께, 생성된 팀 정보를 응답 본문에 담아 반환
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/join")
+    public ResponseEntity<TeamResponseDTO> joinTeam(
+            @RequestBody @Valid JoinTeamRequestDTO request,
+            @RequestHeader("X-User-Id") Long userId
+    ) {
+        TeamResponseDTO response = teamService.joinTeam(request, userId);
+        return ResponseEntity.ok(response);
     }
 }

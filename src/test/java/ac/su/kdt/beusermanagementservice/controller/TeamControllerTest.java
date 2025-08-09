@@ -1,6 +1,8 @@
 package ac.su.kdt.beusermanagementservice.controller;
 
+import ac.su.kdt.beusermanagementservice.entity.Team;
 import ac.su.kdt.beusermanagementservice.entity.User;
+import ac.su.kdt.beusermanagementservice.repository.TeamMembershipRepository;
 import ac.su.kdt.beusermanagementservice.repository.TeamRepository;
 import ac.su.kdt.beusermanagementservice.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -38,15 +41,24 @@ class TeamControllerTest {
     @Autowired
     private TeamRepository teamRepository; // 테스트 데이터 확인을 위한 리포지토리
 
+    @Autowired
+    private TeamMembershipRepository teamMembershipRepository; // 팀 참가 테스트 검증을 위한 리포지토리
+
+
     private User testUser; // 여러 테스트에서 공통으로 사용할 사용자 객체
+    private User testInstructor; // 팀 생성을 위한 강사 사용자 객체
+    private User testStudent; // 팀 참가를 위한 학생 사용자 객체
 
     @BeforeEach
     void setUp() {
         // 테스트를 실행하기 전에 항상 깨끗한 상태를 만들기 위해 DB를 초기화
+        teamMembershipRepository.deleteAll();
         teamRepository.deleteAll();
         userRepository.deleteAll();
         // 모든 테스트에서 사용할 기본 사용자를 미리 생성하고 DB에 저장
         testUser = userRepository.save(new User("auth|testuser", "test@test.com", "테스트유저"));
+        testInstructor = userRepository.save(new User("auth|ins", "instructor@test.com", "테스트강사"));
+        testStudent = userRepository.save(new User("auth|stu", "student@test.com", "테스트학생"));
     }
 
     @Test
@@ -66,8 +78,28 @@ class TeamControllerTest {
             // .andExpect(): 요청에 대한 응답을 검증
             .andExpect(status().isCreated()) // 응답 상태 코드가 201 Created 인지 확인
             // jsonPath("$.필드명"): 응답 JSON의 특정 필드 값 확인. '$'는 JSON 전체를 의미
-            .andExpect(jsonPath("$.name").value("나의 멋진 팀")) // 응답의 name 필드가 "KDT팀"인지 확인
+            .andExpect(jsonPath("$.name").value("KDT팀")) // 응답의 name 필드가 "KDT팀"인지 확인
             .andExpect(jsonPath("$.instructorId").value(testUser.getId())) // 응답의 instructorId가 테스트 유저의 ID인지 확인
             .andExpect(jsonPath("$.teamCode").exists()); // 응답에 teamCode 필드가 존재하는지 확인
+    }
+    @Test
+    @DisplayName("팀 참가 API 성공 테스트")
+    void joinTeam_success() throws Exception {
+        // given
+        // 학생이 참가할 팀을 미리 생성
+        Team teamToJoin = teamRepository.save(new Team("참가할 팀", "JOINME123", testInstructor.getId()));
+        // 팀 참가를 요청할 때 Body에 담을 데이터를 Map으로 생성
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("teamCode", "JOINME123");
+        String jsonBody = objectMapper.writeValueAsString(requestBody);
+
+        // when & then
+        mockMvc.perform(post("/api/teams/join") // POST 메서드로 /api/teams/join 경로에 요청
+                        .header("X-User-Id", String.valueOf(testStudent.getId())) // 참가하려는 학생의 ID를 헤더에 추가
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isOk()) // 성공 시 200 OK 상태 코드인지 확인
+                .andExpect(jsonPath("$.id").value(teamToJoin.getId())) // 응답의 id가 참가한 팀의 id와 일치하는지 확인
+                .andExpect(jsonPath("$.currentMembers").value(1)); // 학생 참가 후 멤버 수가 1이 되었는지 확인 (강사는 멤버십에만 있고 카운트는 학생만)
     }
 }

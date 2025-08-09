@@ -17,7 +17,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class TeamService {
-
     private final TeamRepository teamRepository;
     private final TeamMembershipRepository teamMembershipRepository;
     private final UserRepository userRepository;
@@ -48,5 +47,34 @@ public class TeamService {
 
         // 6. 생성된 팀 정보를 DTO로 변환하여 반환
         return TeamResponseDTO.from(newTeam);
+    }
+    @Transactional
+    public TeamResponseDTO joinTeam(JoinTeamRequestDTO request, Long studentId) {
+        // 1. 초대 코드로 참가할 팀을 조회
+        Team teamToJoin = teamRepository.findByTeamCode(request.teamCode())
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 팀 코드입니다."));
+
+        // 2. 참가하려는 학생 정보를 조회
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 정보를 찾을 수 없습니다."));
+
+        // 3. 이미 팀에 속해 있는지 확인하여 중복 참가를 방지
+        if (teamMembershipRepository.existsByTeamAndUser(teamToJoin, student)) {
+            throw new IllegalStateException("이미 해당 팀에 속해 있습니다.");
+        }
+
+        // 4. 팀 인원 제한을 확인
+        if (teamToJoin.getCurrentMembers() >= teamToJoin.getMaxMembers()) {
+            throw new IllegalStateException("팀의 최대 인원을 초과하여 참가할 수 없습니다.");
+        }
+
+        // 5. 학생을 MEMBER 역할로 팀 멤버십에 추가하고 저장
+        TeamMembership newMembership = new TeamMembership(teamToJoin, student, TeamMembership.Role.MEMBER);
+        teamMembershipRepository.save(newMembership);
+
+        // 6. 팀의 현재 인원 수를 1 증가
+        teamToJoin.updateCurrentMembers(teamToJoin.getCurrentMembers() + 1);
+
+        return TeamResponseDTO.from(teamToJoin);
     }
 }

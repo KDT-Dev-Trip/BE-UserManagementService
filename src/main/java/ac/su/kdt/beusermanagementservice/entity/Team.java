@@ -54,6 +54,10 @@ public class Team {
         this.instructorId = instructorId;
     }
 
+    public void updateCurrentMembers(int newCount) {
+        this.currentMembers = newCount;
+    }
+
     public enum Status {
         ACTIVE, INACTIVE, COMPLETED
     }
