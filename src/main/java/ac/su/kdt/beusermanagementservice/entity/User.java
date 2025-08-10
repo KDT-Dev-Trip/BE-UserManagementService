@@ -66,4 +66,16 @@ public class User {
     public enum Status {
         ACTIVE, INACTIVE, SUSPENDED
     }
+
+    // 프로필 수정을 위한
+    public void updateProfile(String name, String phone) {
+        // 요청에 이름이 포함되어 있으면 이름을 변경
+        if (name != null) {
+            this.name = name;
+        }
+        // 요청에 전화번호가 포함되어 있으면 전화번호를 변경
+        if (phone != null) {
+            this.phone = phone;
+        }
+    }
 }

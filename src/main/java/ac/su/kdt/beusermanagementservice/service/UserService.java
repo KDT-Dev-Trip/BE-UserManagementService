@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ac.su.kdt.beusermanagementservice.dto.UpdateProfileRequestDTO;
+import ac.su.kdt.beusermanagementservice.dto.UserProfileResponseDTO;
 
 // 비즈니스 로직을 처리하는 서비스 계층의 컴포넌트임을 Spring에 알림
 @Service
@@ -39,5 +41,40 @@ public class UserService {
                 logger.info("신규 사용자 프로필 생성 완료: auth0Id={}, email={}", newUser.getAuth0Id(), newUser.getEmail());
             }
         );
+    }
+
+    // 사용자 ID로 프로필 정보를 조회
+    @Transactional(readOnly = true)
+    public UserProfileResponseDTO getUserProfile(Long userId) {
+        // 1. DB에서 사용자 정보를 검색
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        // 2. 찾은 User 엔티티를 DTO로 변환하여 반환
+        return UserProfileResponseDTO.from(user);
+    }
+
+    // 사용자 프로필 정보를 수정
+    @Transactional
+    public UserProfileResponseDTO updateUserProfile(Long userId, UpdateProfileRequestDTO request) {
+        // 1. DB에서 수정할 사용자 정보를 검색
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        // 2. 엔티티 내부에 상태 변경 로직을 위임. (엔티티에 updateProfile 메서드 추가 필요)
+        user.updateProfile(request.name(), request.phone());
+        // 3. 변경된 엔티티는 @Transactional에 의해 메서드 종료 시 자동으로 DB에 반영
+        return UserProfileResponseDTO.from(user);
+    }
+
+    // 여권에 도장을 추가
+    @Transactional
+    public void addStamp(Long userId, Long missionId) {
+        // 1. DB에서 도장을 추가할 사용자 정보를 검색
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // TODO: ERD에 도장(stamp) 관련 테이블이 없으므로, 추후 별도의 Stamp 엔티티를 만들거나
+        // User 엔티티에 stamp_count와 같은 컬럼을 추가
+        // 지금은 로직이 호출되었음을 확인하는 로그만 남깁니다.
+        logger.info("사용자 ID {}에게 미션 ID {} 완료 도장을 추가합니다.", userId, missionId);
     }
 }
