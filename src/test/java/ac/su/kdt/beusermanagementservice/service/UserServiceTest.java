@@ -32,7 +32,6 @@ class UserServiceTest {
     void registerNewUser_whenNewUser_shouldSaveUser() {
         // given
         UserSignedUpEventDTO event = new UserSignedUpEventDTO("auth0|new", "new@test.com", "신규유저");
-        // Mock 객체의 동작을 정의***
         // 아직 가입되지 않은 사용자임을 시뮬레이션
         given(userRepository.findByAuth0Id(event.auth0Id())).willReturn(Optional.empty());
 
