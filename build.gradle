@@ -45,6 +45,8 @@ dependencies {
 
     // H2 데이터베이스 (테스트용)
     testImplementation 'com.h2database:h2'
+    // 테스트 실행 시에만 H2 인메모리 데이터베이스를 사용하기 위한 의존성
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {

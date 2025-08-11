@@ -23,7 +23,8 @@ public class TicketService {
     private static final Logger logger = LoggerFactory.getLogger(TicketService.class);
     private final UserRepository userRepository;
     private final TicketTransactionRepository ticketTransactionRepository;
-    private static final int MAX_TICKET_COUNT = 10; // 일단 10개로 설정
+    private static final int MAX_TICKET_COUNT = 10; // 최대 보유 티켓 수
+    private static final int INITIAL_TICKET_COUNT = 7; // 최초 지급 티켓 수
 
     // 티켓 잔액을 조회
     @Transactional(readOnly = true)
@@ -98,5 +99,29 @@ public class TicketService {
                 logger.info("티켓 충전: userId={}, 잔액: {} -> {}", user.getId(), balanceBefore, balanceAfter);
             }
         }
+    }
+
+    //최초 가입 시 사용자에게 티켓 지급
+    @Transactional
+    public void grantInitialTickets(User user) {
+        // 1. 현재 티켓 잔액 확인. 새로 가입했으니 당연히 0
+        int balanceBefore = getTicketBalance(user.getId());
+        // 2. 지급 후의 잔액 계산
+        int balanceAfter = balanceBefore + INITIAL_TICKET_COUNT;
+
+        // 3. 'INITIAL' 타입의 티켓 거래 내역 객체 생성
+        TicketTransaction transaction = new TicketTransaction(
+                user, // 티켓을 받을 사용자
+                TicketTransaction.TransactionType.INITIAL, // 거래 유형은 '최초 지급'
+                INITIAL_TICKET_COUNT, // 변동량
+                balanceBefore, // 거래 전 잔액
+                balanceAfter,  // 거래 후 잔액
+                "신규 가입 환영 티켓 지급" // 거래 사유
+        );
+
+        // 4. 생성된 거래 내역을 DB에 저장
+        ticketTransactionRepository.save(transaction);
+        // 5. 티켓 지급이 완료되었음을 로그 기록
+        logger.info("초기 티켓 지급: userId={}, 지급 개수={}, 잔액: {} -> {}", user.getId(), INITIAL_TICKET_COUNT, balanceBefore, balanceAfter);
     }
 }

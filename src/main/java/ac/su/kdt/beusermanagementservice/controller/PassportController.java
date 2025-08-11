@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/passport")
 @RequiredArgsConstructor
 public class PassportController {
-    private final UserService userService; // 지금은 UserService를 공유하지만, 나중에 PassportService로 분리할 수 있음
+    private final UserService userService;
 
     // POST /api/passport/stamps
     @PostMapping("/stamps")
