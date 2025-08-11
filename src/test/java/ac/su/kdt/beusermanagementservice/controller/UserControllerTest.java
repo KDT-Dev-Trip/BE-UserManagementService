@@ -23,6 +23,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.web.client.RestTemplate;
+import static org.mockito.BDDMockito.given;  // BDDMockito의 given()을 사용하기 위한 static import
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;  // 응답 결과를 콘솔에 출력하여 디버깅하기 위한 static import
+
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -37,12 +43,17 @@ class UserControllerTest {
 
     private User testUser; // 여러 테스트에서 공통으로 사용할 사용자 객체
 
+    @MockBean
+    private RestTemplate restTemplate;
+
+    private User testStudent;
+
     // 각각의 @Test 메서드가 실행되기 직전에 매번 실행
     @BeforeEach
-
     void setUp() {
         userRepository.deleteAll();
         testUser = userRepository.save(new User("auth|testuser", "test@test.com", "테스트유저"));
+        testStudent = userRepository.save(new User("auth|teststudent", "student@test.com", "테스트학생"));
     }
 
     @Test
@@ -98,5 +109,62 @@ class UserControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonBody))
             .andExpect(status().isOk()); // ## 성공 시 200 OK 응답 확인
+    }
+
+    @Test
+    @DisplayName("사용자 대시보드 조회 API 테스트")
+    void getUserDashboard_success() throws Exception {
+        // given
+        // 1. MissionSvc로부터 받아올 가짜 응답 데이터를 미리 JSON 문자열로 정의
+        String fakeMissionResponse = """
+            [
+                {"missionId": 101, "title": "Docker 컨테이너화", "status": "COMPLETED"},
+                {"missionId": 102, "title": "Kubernetes 배포", "status": "IN_PROGRESS"}
+            ]
+        """;
+
+        // 2. 가짜 RestTemplate(MockBean)의 동작을 정의
+        given(restTemplate.getForObject(
+                // 호출될 것으로 예상되는 정확한 URL을 명시
+                "http://mission-service/api/missions/attempts?userId=" + testStudent.getId(),
+                String.class
+        )).willReturn(fakeMissionResponse);
+
+
+        // when & then
+        mockMvc.perform(get("/api/users/" + testStudent.getId() + "/dashboard")
+                        .header("X-User-Id", String.valueOf(testStudent.getId())))
+                .andExpect(status().isOk())
+                .andDo(print())
+                .andExpect(jsonPath("$.userInfo.name").value(testStudent.getName())) // 사용자 정보가 올바르게 포함되었는지 확인
+                .andExpect(jsonPath("$.completedMissions[0].title").value("Docker 컨테이너화")) // 완료된 미션 정보가 올바르게 포함되었는지 확인
+                .andExpect(jsonPath("$.inProgressMissions[0].title").value("Kubernetes 배포")); // 진행 중인 미션 정보가 올바르게 포함되었는지 확인
+    }
+
+    @Test
+    @DisplayName("사용자 여권 정보 조회 API 테스트")
+    void getUserPassport_success() throws Exception {
+        // given
+        // MissionSvc로부터 받아올 가짜 '완료된 미션' 응답 데이터
+        String fakeCompletedMissions = """
+            [
+                {"missionId": 101, "title": "Docker 컨테이너화", "status": "COMPLETED"},
+                {"missionId": 103, "title": "AWS EC2 배포", "status": "COMPLETED"}
+            ]
+        """;
+
+        // 가짜 RestTemplate 동작 정의. status=COMPLETED 파라미터가 포함된 URL을 예상
+        given(restTemplate.getForObject(
+                "http://mission-service/api/missions/attempts?userId=" + testStudent.getId() + "&status=COMPLETED",
+                String.class
+        )).willReturn(fakeCompletedMissions);
+
+        // when & then
+        mockMvc.perform(get("/api/users/" + testStudent.getId() + "/passport")
+                        .header("X-User-Id", String.valueOf(testStudent.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userName").value(testStudent.getName())) // 사용자 이름이 올바른지 확인
+                .andExpect(jsonPath("$.completedMissionsCount").value(2)) // 완료된 미션 수가 2개인지 확인
+                .andExpect(jsonPath("$.completedMissions[0].title").value("Docker 컨테이너화")); // 완료된 미션 목록이 올바르게 포함되었는지 확인
     }
 }

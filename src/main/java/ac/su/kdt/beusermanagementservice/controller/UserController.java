@@ -6,6 +6,8 @@ import ac.su.kdt.beusermanagementservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ac.su.kdt.beusermanagementservice.dto.UserDashboardDTO;
+import ac.su.kdt.beusermanagementservice.dto.UserPassportDTO;
 
 @RestController
 @RequestMapping("/api/users")
@@ -28,5 +30,21 @@ public class UserController {
     ) {
         UserProfileResponseDTO updatedProfile = userService.updateUserProfile(userId, request);
         return ResponseEntity.ok(updatedProfile);
+    }
+
+    // "/{userId}/dashboard"는 /api/users/{userId}/dashboard 경로와 매핑
+    @GetMapping("/{userId}/dashboard")
+    public ResponseEntity<UserDashboardDTO> getUserDashboard(
+            @PathVariable Long userId
+    ) {
+        UserDashboardDTO dashboard = userService.getUserDashboard(userId);
+        return ResponseEntity.ok(dashboard);
+    }
+
+    // GET /api/users/{userId}/passport
+    @GetMapping("/{userId}/passport")
+    public ResponseEntity<UserPassportDTO> getUserPassport(@PathVariable Long userId) {
+        UserPassportDTO passport = userService.getUserPassport(userId);
+        return ResponseEntity.ok(passport);
     }
 }
