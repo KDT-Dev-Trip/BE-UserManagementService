@@ -9,9 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -20,10 +18,8 @@ import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class TicketServiceTest {
-
     @InjectMocks
-    private TicketService ticketService; // 아직 TicketService가 없어 에러 발생
-
+    private TicketService ticketService;
     @Mock
     private UserRepository userRepository;
     @Mock
@@ -36,10 +32,8 @@ class TicketServiceTest {
         final Long userId = 1L;
         given(userRepository.findById(userId)).willReturn(Optional.of(new User("auth|1", "test@test.com", "user")));
         given(ticketTransactionRepository.findCurrentTicketBalanceByUserId(userId)).willReturn(Optional.of(3));
-
         // when
         ticketService.consumeTicket(userId, "미션 시작");
-
         // then
         then(ticketTransactionRepository).should().save(any());
     }
@@ -51,11 +45,8 @@ class TicketServiceTest {
         final Long userId = 1L;
         given(userRepository.findById(userId)).willReturn(Optional.of(new User("auth|1", "test@test.com", "user")));
         given(ticketTransactionRepository.findCurrentTicketBalanceByUserId(userId)).willReturn(Optional.of(0));
-
         // when & then
-        assertThrows(IllegalStateException.class, () -> {
-            ticketService.consumeTicket(userId, "미션 시작");
-        });
+        assertThrows(IllegalStateException.class, () -> ticketService.consumeTicket(userId, "미션 시작"));
         then(ticketTransactionRepository).should(never()).save(any());
     }
 }
