@@ -5,6 +5,10 @@ import ac.su.kdt.beusermanagementservice.entity.TeamMembership;
 import ac.su.kdt.beusermanagementservice.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
+
 public interface TeamMembershipRepository extends JpaRepository<TeamMembership, Long> {
     boolean existsByTeamAndUser(Team team, User user);
+    List<TeamMembership> findByUserAndStatus(User user, TeamMembership.Status status);
 }

@@ -1,6 +1,9 @@
 package ac.su.kdt.beusermanagementservice.service;
 
 import ac.su.kdt.beusermanagementservice.dto.*;
+import ac.su.kdt.beusermanagementservice.entity.SubscriptionPlan;
+import ac.su.kdt.beusermanagementservice.entity.Team;
+import ac.su.kdt.beusermanagementservice.entity.TeamMembership;
 import ac.su.kdt.beusermanagementservice.entity.User;
 import ac.su.kdt.beusermanagementservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

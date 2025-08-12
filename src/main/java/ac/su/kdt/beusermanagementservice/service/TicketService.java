@@ -1,5 +1,6 @@
 package ac.su.kdt.beusermanagementservice.service;
 
+import ac.su.kdt.beusermanagementservice.entity.SubscriptionPlan;
 import ac.su.kdt.beusermanagementservice.entity.TicketTransaction;
 import ac.su.kdt.beusermanagementservice.entity.User;
 import ac.su.kdt.beusermanagementservice.repository.TicketTransactionRepository;
@@ -9,23 +10,32 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.annotation.Lazy;
 
 import org.springframework.scheduling.annotation.Scheduled;
 
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
-@RequiredArgsConstructor
 public class TicketService {
     private static final Logger logger = LoggerFactory.getLogger(TicketService.class);
     private final UserRepository userRepository;
+    private final UserService userService;
     private final TicketTransactionRepository ticketTransactionRepository;
     private static final int MAX_TICKET_COUNT = 10; // 최대 보유 티켓 수
     private static final int INITIAL_TICKET_COUNT = 7; // 최초 지급 티켓 수
+
+    public TicketService(TicketTransactionRepository ticketTransactionRepository, UserRepository userRepository, @Lazy UserService userService) {
+        this.ticketTransactionRepository = ticketTransactionRepository;
+        this.userRepository = userRepository;
+        this.userService = userService;
+    }
 
     // 티켓 잔액을 조회
     @Transactional(readOnly = true)
@@ -82,17 +92,17 @@ public class TicketService {
     // 특정 사용자의 티켓을 충전하는 내부 로직
     @Transactional
     public boolean refillTicketForUser(User user) {
+        SubscriptionPlan effectivePlan = userService.getEffectivePlan(user); // 사용자의 플랜을 조회.
+        long refillInterval = effectivePlan.getRefillIntervalHours(); // 플랜에 맞는 충전 주기 로드
+        int maxTickets = effectivePlan.getMaxTickets(); // 플랜에 맞는 최대 보유량 로드
+
         // 해당 사용자의 가장 마지막 'REFILL' 거래 내역을 조회
         Optional<TicketTransaction> lastRefillOpt = ticketTransactionRepository.findTopByUserAndTransactionTypeOrderByCreatedAtDesc(user, TicketTransaction.TransactionType.REFILL);
 
         // 마지막 충전으로부터 2분 지났는지 여부 판단
-        boolean shouldRefill = lastRefillOpt.map(lastRefill -> {
-                    // ## [시간 오차 해결] 마지막 충전 시간과 현재 시간의 차이를 계산합니다.
-                    Duration duration = Duration.between(lastRefill.getCreatedAt().toInstant(), Instant.now());
-                    // ## 그 차이가 2분 이상(>=)인지 명확하게 확인합니다.
-                    return duration.toMinutes() >= 2;
-                }
-        ).orElse(true); // 마지막 충전 기록이 없다면(orElse), 무조건 충전 대상
+        boolean shouldRefill = lastRefillOpt.map(lastRefill ->
+                lastRefill.getCreatedAt().before(Timestamp.from(Instant.now().minus(refillInterval, ChronoUnit.HOURS)))
+        ).orElse(true);
 
         // 충전 대상일 경우에만 실행
         if (shouldRefill) {
@@ -116,24 +126,23 @@ public class TicketService {
     //최초 가입 시 사용자에게 티켓 지급
     @Transactional
     public void grantInitialTickets(User user) {
-        // 1. 현재 티켓 잔액 확인. 새로 가입했으니 당연히 0
-        int balanceBefore = getTicketBalance(user.getId());
-        // 2. 지급 후의 잔액 계산
-        int balanceAfter = balanceBefore + INITIAL_TICKET_COUNT;
+        SubscriptionPlan plan = user.getSubscriptionPlan(); // 사용자의 '기본' 구독 플랜을 가져옴
+        int initialTickets = plan.getInitialTickets(); // 해당 플랜의 초기 지급 티켓 수를 가져옴
 
-        // 3. 'INITIAL' 타입의 티켓 거래 내역 객체 생성
-        TicketTransaction transaction = new TicketTransaction(
-                user, // 티켓을 받을 사용자
-                TicketTransaction.TransactionType.INITIAL, // 거래 유형은 '최초 지급'
-                INITIAL_TICKET_COUNT, // 변동량
-                balanceBefore, // 거래 전 잔액
-                balanceAfter,  // 거래 후 잔액
-                "신규 가입 환영 티켓 지급" // 거래 사유
-        );
-
-        // 4. 생성된 거래 내역을 DB에 저장
+        TicketTransaction transaction = new TicketTransaction(user, TicketTransaction.TransactionType.INITIAL, initialTickets, 0, initialTickets, "신규 가입 환영 티켓 지급 (" + plan.name() + ")");
         ticketTransactionRepository.save(transaction);
-        // 5. 티켓 지급이 완료되었음을 로그 기록
-        logger.info("초기 티켓 지급: userId={}, 지급 개수={}, 잔액: {} -> {}", user.getId(), INITIAL_TICKET_COUNT, balanceBefore, balanceAfter);
+        logger.info("신규가입 티켓 지급: userId={}, plan={}, 지급 개수={}, 잔액: 0 -> {}", user.getId(), plan.name(), initialTickets, initialTickets);
+    }
+
+    // ## [신규] 구독 플랜 변경 시 추가 티켓을 지급하는 메서드입니다.
+    @Transactional
+    public void upgradeSubscription(User user, SubscriptionPlan newPlan) {
+        int bonusTickets = newPlan.getInitialTickets(); // 새로운 플랜의 초기 지급 티켓 수를 추가로 지급
+        int balanceBefore = getTicketBalance(user.getId()); // 변경 직전의 현재 티켓 잔액 조회
+        int balanceAfter = balanceBefore + bonusTickets; // 현재 잔액에 추가 티켓을 추가
+
+        TicketTransaction transaction = new TicketTransaction(user, TicketTransaction.TransactionType.ADMIN_GRANT, bonusTickets, balanceBefore, balanceAfter, "구독 플랜 변경 보너스 지급 (" + newPlan.name() + ")");
+        ticketTransactionRepository.save(transaction);
+        logger.info("구독 플랜 변경 티켓 지급: userId={}, newPlan={}, 지급 개수={}, 잔액: {} -> {}", user.getId(), newPlan.name(), bonusTickets, balanceBefore, balanceAfter);
     }
 }
