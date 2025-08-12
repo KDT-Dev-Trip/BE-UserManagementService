@@ -7,11 +7,12 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.sql.Timestamp;
+import java.time.Instant;
 
 @Entity
 @Table(name = "`user`") // SQL 예약어 'user'와의 충돌을 피하기 위해 백틱(`) 사용
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
     @Id
@@ -51,12 +52,25 @@ public class User {
     @Column(name = "last_login_at")
     private Timestamp lastLoginAt;
 
-    public User(String auth0Id, String email, String name) {
-        this.auth0Id = auth0Id;
-        this.email = email;
-        this.name = name;
-        this.role = Role.STUDENT;
-        this.status = Status.ACTIVE;
+    @Enumerated(EnumType.STRING) // Enum 이름을 DB에 문자열로 저장합니다 (예: 'FREE', 'BASIC')
+    @Column(name = "subscription_plan", nullable = false)
+    private SubscriptionPlan subscriptionPlan;
+
+
+    public User(String auth0Id, String email, String name, SubscriptionPlan subscriptionPlan) {
+        this.auth0Id = auth0Id;                     // Auth0 ID
+        this.email = email;                         // 이메일
+        this.name = name;                           // 이름
+        this.role = Role.STUDENT;                   // 기본 역할은 학생
+        this.status = Status.ACTIVE;                // 기본 상태는 활성
+        this.createdAt = Timestamp.from(Instant.now()); // 생성 시간
+        this.updatedAt = Timestamp.from(Instant.now()); // 수정 시간
+        this.subscriptionPlan = subscriptionPlan;   // 구독 플랜을 '기본' 플랜으로 설정
+    }
+
+    public void updateSubscriptionPlan(SubscriptionPlan newPlan) {
+        this.subscriptionPlan = newPlan;
+        this.updatedAt = Timestamp.from(Instant.now());
     }
 
     public enum Role {

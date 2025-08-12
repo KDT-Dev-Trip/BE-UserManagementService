@@ -58,7 +58,7 @@ public class TicketService {
     }
 
     // 주기적으로 티켓 충전
-    @Scheduled(fixedDelayString = "120000") // 5분
+    @Scheduled(fixedRateString = "120000") // 5분
     @Transactional
     public void scheduledTicketRefill() {
         logger.info("티켓 자동 충전 시작");

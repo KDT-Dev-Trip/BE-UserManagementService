@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ac.su.kdt.beusermanagementservice.dto.UpdateProfileRequestDTO;
 import ac.su.kdt.beusermanagementservice.dto.UserProfileResponseDTO;
+import ac.su.kdt.beusermanagementservice.repository.TeamMembershipRepository;
+import ac.su.kdt.beusermanagementservice.repository.TeamRepository;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
 
 @Service
 // Lombok 어노테이션으로, final로 선언된 필드들만 인자로 받는 생성자를 자동으로 생성.
@@ -28,6 +31,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final TicketService ticketService;
+    private final TeamMembershipRepository teamMembershipRepository;
+    private final TeamRepository teamRepository;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -39,19 +44,13 @@ public class UserService {
         // Kafka는 최소 한 번 전송를 보장하므로, 동일한 메시지가 중복 수신될 수 있음
         // 처리하기 전에 항상 DB에 해당 사용자가 이미 존재하는지 확인
         userRepository.findByAuth0Id(event.auth0Id()).ifPresentOrElse(
-            // 값이 있을 경우 (이미 사용자가 존재함)
-            existingUser -> logger.warn("이미 존재하는 사용자에 대한 가입 이벤트 수신: {}", event.auth0Id()),
-            // 값이 없을 경우 (신규 사용자임)
-            () -> {
-                // 1. 새로운 User 엔티티 객체 생성
-                User newUser = new User(event.auth0Id(), event.email(), event.name());
-                // 2. 생성된 엔티티를 데이터베이스에 저장
-                userRepository.save(newUser);
-                // 3. 최조 티켓 지급
-                ticketService.grantInitialTickets(newUser);
-                // 4. 성공
-                logger.info("신규 사용자 프로필 생성 및 초기 티켓 지급 완료: auth0Id={}", newUser.getAuth0Id());
-            }
+                existingUser -> logger.warn("이미 존재하는 사용자에 대한 가입 이벤트 수신 (멱등 처리): {}", event.auth0Id()),
+                () -> {
+                    User newUser = new User(event.auth0Id(), event.email(), event.name(), event.subscriptionPlan());
+                    userRepository.save(newUser);
+                    ticketService.grantInitialTickets(newUser);
+                    logger.info("신규 사용자 프로필 생성 및 초기 티켓 지급 완료: auth0Id={}, plan={}", newUser.getAuth0Id(), newUser.getSubscriptionPlan());
+                }
         );
     }
 
@@ -149,5 +148,41 @@ public class UserService {
 
         // 3. 조회된 사용자 정보와 MissionSvc로부터 받은 데이터를 조합하여 최종 DTO 반환
         return new UserPassportDTO(user.getName(), completedMissions.size(), completedMissions);
+    }
+
+    // ## [신규 추가] 사용자의 '실질적인' 구독 플랜을 계산하는 핵심 메서드입니다.
+    @Transactional(readOnly = true) // ## DB 데이터 변경이 없는 조회 전용 트랜잭션임을 명시합니다.
+    public SubscriptionPlan getEffectivePlan(User user) {
+        // ## 1. 사용자가 현재 속한 모든 활성(ACTIVE) 팀 멤버십 정보를 조회합니다.
+        List<TeamMembership> memberships = teamMembershipRepository.findByUserAndStatus(user, TeamMembership.Status.ACTIVE);
+
+        // ## 2. 멤버십 목록을 순회하며, 팀 리더가 ENTERPRISE 플랜인지 확인합니다.
+        for (TeamMembership membership : memberships) {
+            Team team = membership.getTeam(); // ## 멤버십 정보에서 팀 정보를 가져옵니다.
+            User instructor = userRepository.findById(team.getInstructorId()) // ## 팀 정보에서 강사(팀 리더)의 ID로 사용자 정보를 조회합니다.
+                    .orElseThrow(() -> new IllegalStateException("팀의 강사 정보를 찾을 수 없습니다: " + team.getInstructorId()));
+
+            // ## 3. 만약 팀 리더의 플랜이 ENTERPRISE라면,
+            if (instructor.getSubscriptionPlan() == SubscriptionPlan.ENTERPRISE) {
+                logger.debug("사용자(id:{})가 ENTERPRISE 팀(id:{})에 속해있어 실질 플랜을 ENTERPRISE로 적용합니다.", user.getId(), team.getId());
+                return SubscriptionPlan.ENTERPRISE; // ## 이 사용자의 실질 플랜은 ENTERPRISE 입니다.
+            }
+        }
+
+        // ## 4. 만약 ENTERPRISE 플랜의 팀에 속해있지 않다면, 사용자의 기본 플랜을 반환합니다.
+        return user.getSubscriptionPlan();
+    }
+
+    // ## [신규 추가] 구독 변경 이벤트를 처리하는 로직입니다.
+    @Transactional
+    public void processSubscriptionChange(SubscriptionChangedEventDTO event) {
+        User user = userRepository.findById(event.userId()) // ## userId로 사용자를 찾습니다.
+                .orElseThrow(() -> new IllegalArgumentException("구독 변경 이벤트 처리: 사용자를 찾을 수 없습니다. ID: " + event.userId()));
+
+        user.updateSubscriptionPlan(event.newPlan()); // ## 1. 사용자의 '기본' 구독 플랜을 새로운 플랜으로 변경합니다.
+
+        ticketService.upgradeSubscription(user, event.newPlan()); // ## 2. TicketService를 호출하여 보너스 티켓을 지급합니다.
+
+        logger.info("사용자 구독 플랜 변경 완료: userId={}, newPlan={}", user.getId(), event.newPlan());
     }
 }
