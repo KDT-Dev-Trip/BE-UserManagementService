@@ -11,11 +11,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.scheduling.annotation.Scheduled;
-import java.sql.Timestamp;
+
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
@@ -57,30 +58,40 @@ public class TicketService {
     }
 
     // 주기적으로 티켓 충전
-    @Scheduled(fixedRateString = "43200000") // 12 시간
+    @Scheduled(fixedDelayString = "120000") // 5분
     @Transactional
     public void scheduledTicketRefill() {
         logger.info("티켓 자동 충전 시작");
+
+        AtomicInteger refillCount = new AtomicInteger(0);
         // 현재는 모든 사용자를 대상으로 충전 여부 확인
         List<User> allUsers = userRepository.findAll();
 
         // 모든 사용자를 순회하며 개별 충전 로직 호출
         for (User user : allUsers) {
-            refillTicketForUser(user);
+            boolean isRefilled = refillTicketForUser(user);
+            if (isRefilled) {
+                // ## 충전에 성공한 경우에만 카운트를 1 증가시킵니다.
+                refillCount.incrementAndGet();
+            }
         }
         // 스케줄러가 작업을 마쳤음을 로그로 알림.
-        logger.info("티켓 자동 충전 스케줄러 종료");
+        logger.info("티켓 자동 충전 스케줄러 종료. 총 {}명의 사용자 중 {}명에게 티켓이 충전되었습니다.", allUsers.size(), refillCount.get());
     }
 
     // 특정 사용자의 티켓을 충전하는 내부 로직
     @Transactional
-    public void refillTicketForUser(User user) {
+    public boolean refillTicketForUser(User user) {
         // 해당 사용자의 가장 마지막 'REFILL' 거래 내역을 조회
         Optional<TicketTransaction> lastRefillOpt = ticketTransactionRepository.findTopByUserAndTransactionTypeOrderByCreatedAtDesc(user, TicketTransaction.TransactionType.REFILL);
 
-        // 마지막 충전으로부터 12시간이 지났는지 여부 판단
-        boolean shouldRefill = lastRefillOpt.map(lastRefill -> // 마지막 충전 기록이 있다면, 그 기록의 생성 시간이 12시간 전보다 이전인지(before) 확인
-                lastRefill.getCreatedAt().before(Timestamp.from(Instant.now().minus(12, ChronoUnit.HOURS)))
+        // 마지막 충전으로부터 2분 지났는지 여부 판단
+        boolean shouldRefill = lastRefillOpt.map(lastRefill -> {
+                    // ## [시간 오차 해결] 마지막 충전 시간과 현재 시간의 차이를 계산합니다.
+                    Duration duration = Duration.between(lastRefill.getCreatedAt().toInstant(), Instant.now());
+                    // ## 그 차이가 2분 이상(>=)인지 명확하게 확인합니다.
+                    return duration.toMinutes() >= 2;
+                }
         ).orElse(true); // 마지막 충전 기록이 없다면(orElse), 무조건 충전 대상
 
         // 충전 대상일 경우에만 실행
@@ -96,9 +107,10 @@ public class TicketService {
                 // 생성된 거래 내역을 DB에 저장
                 ticketTransactionRepository.save(transaction);
                 // 충전 완료 로그 기록
-                logger.info("티켓 충전: userId={}, 잔액: {} -> {}", user.getId(), balanceBefore, balanceAfter);
+                return true;
             }
         }
+        return false;
     }
 
     //최초 가입 시 사용자에게 티켓 지급
