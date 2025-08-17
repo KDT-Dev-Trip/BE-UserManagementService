@@ -12,6 +12,8 @@ pipeline {
         DOCKER_USERNAME = 'your-dockerhub-username'
         // 생성할 Docker 이미지의 이름
         DOCKER_IMAGE_NAME = 'user-management-service'
+        // Kubernetes 설정 파일을 모아둔 Git 리포지토리 주소
+        CONFIG_REPO_URL = 'https://github.com/your-username/DevTrip-k8s-manifests.git'
     }
 
     // 파이프라인의 각 단계를 정의
@@ -50,6 +52,26 @@ pipeline {
                 }
                 // 빌드한 Docker 이미지를 Docker Hub로 푸시(업로드)
                 sh "docker push ${DOCKER_USERNAME}/${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}"
+            }
+        }
+        stage('Update K8s Manifest') {
+            steps {
+                 // 별도의 작업 공간('config-repo')에서 Git 설정 리포지토리를 클론
+                 dir('config-repo') {
+                     git url: CONFIG_REPO_URL, branch: 'main'
+
+                     // sed 명령어를 사용하여 deployment.yaml 파일의 이미지 태그를 현재 빌드 번호로 변경
+                     sh "sed -i 's|image:.*|image: ${DOCKER_USERNAME}/${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}|g' services/user-service/deployment.yaml"
+
+                     // 변경된 내용을 Git에 커밋
+                     sh 'git config --global user.email "jenkins@example.com"'
+                     sh 'git config --global user.name "Jenkins CI"'
+                     sh 'git add .'
+                     sh "git commit -m 'Update user-service to version ${BUILD_NUMBER}'"
+
+                     // 변경된 내용을 Git 리포지토리에 푸시
+                     sh 'git push origin main'
+                 }
             }
         }
     }
