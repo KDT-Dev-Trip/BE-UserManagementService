@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
+import ac.su.kdt.beusermanagementservice.dto.TeamCreatedEventDTO;
+import org.springframework.kafka.core.KafkaTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +22,8 @@ public class TeamService {
     private final TeamRepository teamRepository;
     private final TeamMembershipRepository teamMembershipRepository;
     private final UserRepository userRepository;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private static final String TEAM_EVENTS_TOPIC = "team-events";
 
     @Transactional
     public TeamResponseDTO createTeam(CreateTeamRequestDTO request, Long instructorId) {
@@ -27,7 +31,7 @@ public class TeamService {
         User instructor = userRepository.findById(instructorId)
             .orElseThrow(() -> new IllegalArgumentException("강사 정보를 찾을 수 없습니다."));
 
-        // 2. 고유한 팀 코드 생성 (UUID의 일부를 사용)
+        // 2. 고유한 팀 코드 생성 (UUID의 일부를 사용, 중복되지 않는 랜덤한 8자리 팀 코드를 생성)
         String teamCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
         // 3. 팀 엔티티 생성 및 저장
@@ -43,7 +47,11 @@ public class TeamService {
         // 5. 팀의 현재 인원 수를 업데이트
         newTeam.setCurrentMembers(1);
 
-        // TODO: Kafka로 TeamCreatedEvent 발행 로직 추가 예정
+        // Kafka로 TeamCreatedEvent 발행 로직
+        // 1). 다른 서비스에 전달할 이벤트 DTO를 생성
+        TeamCreatedEventDTO event = new TeamCreatedEventDTO(newTeam.getId(), newTeam.getName(), instructorId);
+        // 2). kafkaTemplate.send() 메서드를 사용하여 지정된 토픽으로 이벤트를 발행(전송)
+        kafkaTemplate.send(TEAM_EVENTS_TOPIC, event);
 
         // 6. 생성된 팀 정보를 DTO로 변환하여 반환
         return TeamResponseDTO.from(newTeam);
