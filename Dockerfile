@@ -28,7 +28,7 @@ RUN ./gradlew build -x test
 
 # 2단계: 실행(Final) 환경 설정
 #가볍고 실행에만 필요한 JRE(Java Runtime Environment) 버전을 최종 실행용 베이스 이미지로 사용
-FROM openjdk:17-jre-slim
+FROM openjdk:17-slim-bullseye
 
 # 최종 실행 컨테이너의 작업 디렉토리를 설정
 WORKDIR /app
@@ -42,4 +42,4 @@ EXPOSE 8081
 
 # ENTRYPOINT: 컨테이너가 시작될 때 실행할 기본 명령어를 지정
 # ["java","-jar","/app.jar"]: java -jar /app.jar 명령으로 Spring Boot 애플리케이션을 실행
-ENTRYPOINT ["java","-jar","/app.jar"]
+ENTRYPOINT ["java","-jar","app.jar"]
