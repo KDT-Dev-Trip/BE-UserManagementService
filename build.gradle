@@ -47,6 +47,14 @@ dependencies {
     testImplementation 'com.h2database:h2'
     // 테스트 실행 시에만 H2 인메모리 데이터베이스를 사용하기 위한 의존성
     testRuntimeOnly 'com.h2database:h2'
+
+    // 애플리케이션의 상태를 모니터링하고 관리하는 기능을 제공
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // Actuator가 수집한 메트릭을 Prometheus가 이해할 수 있는 포맷으로 변환
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
+
 }
 
 tasks.named('test') {
