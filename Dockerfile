@@ -37,8 +37,8 @@ WORKDIR /app
 # 빌드 단계에서 생성된 JAR 파일을 실행 환경으로 복사, 이름을 app.jar로 통일하여 실행하기 쉽게 생성
 COPY --from=builder /workspace/app/build/libs/*.jar app.jar
 
-# 8081 포트를 외부에 노출할 것임을 명시(우리 서비스 포트)
-EXPOSE 8081
+# 8082 포트를 외부에 노출할 것임을 명시(우리 서비스 포트)
+EXPOSE 8082
 
 # ENTRYPOINT: 컨테이너가 시작될 때 실행할 기본 명령어를 지정
 # ["java","-jar","/app.jar"]: java -jar /app.jar 명령으로 Spring Boot 애플리케이션을 실행
