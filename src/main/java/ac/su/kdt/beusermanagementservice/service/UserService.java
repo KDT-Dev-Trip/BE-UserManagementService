@@ -153,39 +153,53 @@ public class UserService {
         return new UserPassportDTO(user.getName(), completedMissions.size(), completedMissions);
     }
 
-    // ## [신규 추가] 사용자의 '실질적인' 구독 플랜을 계산하는 핵심 메서드입니다.
-    @Transactional(readOnly = true) // ## DB 데이터 변경이 없는 조회 전용 트랜잭션임을 명시합니다.
+    // 사용자의 '실질적인' 구독 플랜을 계산하는 핵심 메서드
+    @Transactional(readOnly = true)
     public SubscriptionPlan getEffectivePlan(User user) {
-        // ## 1. 사용자가 현재 속한 모든 활성(ACTIVE) 팀 멤버십 정보를 조회합니다.
+        // 1. 사용자가 현재 속한 모든 활성(ACTIVE) 팀 멤버십 정보를 조회
         List<TeamMembership> memberships = teamMembershipRepository.findByUserAndStatus(user, TeamMembership.Status.ACTIVE);
 
-        // ## 2. 멤버십 목록을 순회하며, 팀 리더가 ENTERPRISE 플랜인지 확인합니다.
+        // 2. 멤버십 목록을 순회하며, 팀 리더가 ENTERPRISE 플랜인지 확인
         for (TeamMembership membership : memberships) {
-            Team team = membership.getTeam(); // ## 멤버십 정보에서 팀 정보를 가져옵니다.
-            User instructor = userRepository.findById(team.getInstructorId()) // ## 팀 정보에서 강사(팀 리더)의 ID로 사용자 정보를 조회합니다.
+            Team team = membership.getTeam(); // 멤버십 정보에서 팀 정보
+            User instructor = userRepository.findById(team.getInstructorId()) // 팀 정보에서 강사(팀 리더)의 ID로 사용자 정보를 조회
                     .orElseThrow(() -> new IllegalStateException("팀의 강사 정보를 찾을 수 없습니다: " + team.getInstructorId()));
 
-            // ## 3. 만약 팀 리더의 플랜이 ENTERPRISE라면,
+            // 3. 만약 팀 리더의 플랜이 ENTERPRISE라면,
             if (instructor.getSubscriptionPlan() == SubscriptionPlan.ENTERPRISE) {
                 logger.debug("사용자(id:{})가 ENTERPRISE 팀(id:{})에 속해있어 실질 플랜을 ENTERPRISE로 적용합니다.", user.getId(), team.getId());
-                return SubscriptionPlan.ENTERPRISE; // ## 이 사용자의 실질 플랜은 ENTERPRISE 입니다.
+                return SubscriptionPlan.ENTERPRISE;
             }
         }
 
-        // ## 4. 만약 ENTERPRISE 플랜의 팀에 속해있지 않다면, 사용자의 기본 플랜을 반환합니다.
+        // 4. 만약 ENTERPRISE 플랜의 팀에 속해있지 않다면, 사용자의 기본 플랜을 반환
         return user.getSubscriptionPlan();
     }
 
-    // ## [신규 추가] 구독 변경 이벤트를 처리하는 로직입니다.
+    // 구독 변경 이벤트를 처리하는 로직
     @Transactional
     public void processSubscriptionChange(SubscriptionChangedEventDTO event) {
-        User user = userRepository.findById(event.userId()) // ## userId로 사용자를 찾습니다.
+        User user = userRepository.findById(event.userId()) // userId로 사용자 검색
                 .orElseThrow(() -> new IllegalArgumentException("구독 변경 이벤트 처리: 사용자를 찾을 수 없습니다. ID: " + event.userId()));
 
-        user.updateSubscriptionPlan(event.newPlan()); // ## 1. 사용자의 '기본' 구독 플랜을 새로운 플랜으로 변경합니다.
+        user.updateSubscriptionPlan(event.newPlan()); // 1. 사용자의 '기본' 구독 플랜을 새로운 플랜으로 변경
 
-        ticketService.upgradeSubscription(user, event.newPlan()); // ## 2. TicketService를 호출하여 보너스 티켓을 지급합니다.
+        ticketService.upgradeSubscription(user, event.newPlan()); // 2. TicketService를 호출하여 보너스 티켓을 지급
 
         logger.info("사용자 구독 플랜 변경 완료: userId={}, newPlan={}", user.getId(), event.newPlan());
+    }
+
+    // 유저 프로필 이미지 생성
+    @Transactional
+    public void updateUserProfileImage(Long userId, String newImageUrl) {
+        // userId로 사용자를 찾고, 없으면 예외를 발생
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. ID: " + userId));
+
+        // User 엔티티에 만들어 둘 updateProfileImageUrl 메서드를 호출
+        user.updateProfileImageUrl(newImageUrl);
+
+        // 변경사항이 자동으로 DB에 저장(commit)
+        logger.info("사용자 프로필 이미지 업데이트 완료: userId={}, newImageUrl={}", userId, newImageUrl);
     }
 }

@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ac.su.kdt.beusermanagementservice.dto.UserDashboardDTO;
 import ac.su.kdt.beusermanagementservice.dto.UserPassportDTO;
+import ac.su.kdt.beusermanagementservice.dto.UpdateProfileImageRequestDTO;
 
 @RestController
 @RequestMapping("/api/users")
@@ -33,6 +34,7 @@ public class UserController {
     }
 
     // "/{userId}/dashboard"는 /api/users/{userId}/dashboard 경로와 매핑
+    // GET /api/users/{userId}/dashboard
     @GetMapping("/{userId}/dashboard")
     public ResponseEntity<UserDashboardDTO> getUserDashboard(
             @PathVariable Long userId
@@ -46,5 +48,18 @@ public class UserController {
     public ResponseEntity<UserPassportDTO> getUserPassport(@PathVariable Long userId) {
         UserPassportDTO passport = userService.getUserPassport(userId);
         return ResponseEntity.ok(passport);
+    }
+
+    // PUT /api/users/{userId}/profile-image
+    @PutMapping("/{userId}/profile-image")
+    public ResponseEntity<Void> updateUserProfileImage(
+            // URL 경로에서 사용자 ID를 로드
+            @PathVariable Long userId,
+            // 요청 본문(JSON)을 UpdateProfileImageRequestDTO 객체로 변환
+            @RequestBody UpdateProfileImageRequestDTO request
+    ) {
+        // UserService에 실제 로직 처리를 전달
+        userService.updateUserProfileImage(userId, request.profileImageUrl());
+        return ResponseEntity.ok().build();
     }
 }

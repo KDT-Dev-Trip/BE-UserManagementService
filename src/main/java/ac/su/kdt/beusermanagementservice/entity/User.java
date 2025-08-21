@@ -92,4 +92,10 @@ public class User {
             this.phone = phone;
         }
     }
+
+    // 프로필 이미지 URL을 변경
+    public void updateProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+        this.updatedAt = Timestamp.from(Instant.now()); // 정보 변경 수정 시간을 갱신
+    }
 }
