@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  broker:
+    image: confluentinc/cp-kafka:7.3.0
+    hostname: broker
+    container_name: broker
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+  
+  # ## [⭐️ 추가] UserSvc 서비스 정의
+  user-service:
+    # ## UserSvc의 Docker 이미지를 사용합니다. (ID와 태그를 본인 것으로 수정)
+    image: choi000927/user-management-service:0.0.1
+    container_name: user-service
+    # ## broker가 먼저 실행된 후에 user-service가 시작됩니다.
+    depends_on:
+      - broker
+    # ## UserSvc의 포트를 외부로 노출합니다.
+    ports:
+      - "8082:8082"
+    # ## UserSvc 실행에 필요한 환경 변수를 설정합니다.
+    environment:
+      # ## DB 접속 주소를 host.docker.internal로 설정하여 PC의 DB에 접속합니다.
+      - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3306/devops_platform_db?allowPublicKeyRetrieval=true&useSSL=false
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1111
+      # ## Kafka 접속 주소를 broker 서비스의 내부 주소로 설정합니다.
+      - SPRING_KAFKA_CONSUMER_BOOTSTRAP_SERVERS=broker:29092
