@@ -2,6 +2,7 @@ package ac.su.kdt.beusermanagementservice.controller;
 
 import ac.su.kdt.beusermanagementservice.entity.Team;
 import ac.su.kdt.beusermanagementservice.entity.User;
+import ac.su.kdt.beusermanagementservice.entity.SubscriptionPlan;
 import ac.su.kdt.beusermanagementservice.repository.TeamMembershipRepository;
 import ac.su.kdt.beusermanagementservice.repository.TeamRepository;
 import ac.su.kdt.beusermanagementservice.repository.UserRepository;
@@ -56,9 +57,9 @@ class TeamControllerTest {
         teamRepository.deleteAll();
         userRepository.deleteAll();
         // 모든 테스트에서 사용할 기본 사용자를 미리 생성하고 DB에 저장
-        testUser = userRepository.save(new User("auth|testuser", "test@test.com", "테스트유저"));
-        testInstructor = userRepository.save(new User("auth|ins", "instructor@test.com", "테스트강사"));
-        testStudent = userRepository.save(new User("auth|stu", "student@test.com", "테스트학생"));
+        testUser = userRepository.save(new User("auth|testuser", "test@test.com", "테스트유저", SubscriptionPlan.FREE));
+        testInstructor = userRepository.save(new User("auth|ins", "instructor@test.com", "테스트강사", SubscriptionPlan.FREE));
+        testStudent = userRepository.save(new User("auth|stu", "student@test.com", "테스트학생", SubscriptionPlan.FREE));
     }
 
     @Test

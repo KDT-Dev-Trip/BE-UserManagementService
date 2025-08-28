@@ -32,6 +32,9 @@ dependencies {
     // Kafka 연동
     implementation 'org.springframework.kafka:spring-kafka'
 
+    // Redis 연동
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     // DB
     runtimeOnly 'com.mysql:mysql-connector-j' // MySQL 드라이버
 
@@ -54,6 +57,11 @@ dependencies {
     // Actuator가 수집한 메트릭을 Prometheus가 이해할 수 있는 포맷으로 변환
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
+    // Swagger/OpenAPI 문서 자동 생성
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.4'
+
+    // Logstash Encoder for structured logging
+    implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
 
 }
 

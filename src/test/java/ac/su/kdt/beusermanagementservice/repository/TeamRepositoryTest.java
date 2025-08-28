@@ -2,6 +2,7 @@ package ac.su.kdt.beusermanagementservice.repository;
 
 import ac.su.kdt.beusermanagementservice.entity.Team;
 import ac.su.kdt.beusermanagementservice.entity.User;
+import ac.su.kdt.beusermanagementservice.entity.SubscriptionPlan;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +19,7 @@ class TeamRepositoryTest {
     @DisplayName("팀 저장 및 고유 팀 코드로 조회 테스트")
     void saveAndFindByTeamCode() {
         // given
-        User instructor = userRepository.save(new User("auth|ins", "ins@test.com", "강사"));
+        User instructor = userRepository.save(new User("auth|ins", "ins@test.com", "강사", SubscriptionPlan.FREE));
         Team newTeam = new Team("테스트팀", "UNIQUECODE123", instructor.getId());
 
         // when

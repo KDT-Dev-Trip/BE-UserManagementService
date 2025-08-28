@@ -2,6 +2,7 @@ package ac.su.kdt.beusermanagementservice.repository;
 
 import ac.su.kdt.beusermanagementservice.entity.TicketTransaction;
 import ac.su.kdt.beusermanagementservice.entity.User;
+import ac.su.kdt.beusermanagementservice.entity.SubscriptionPlan;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,7 @@ class TicketTransactionRepositoryTest {
     @DisplayName("티켓 거래 내역 저장 및 사용자 ID로 조회 테스트")
     void saveAndFindByUserId() {
         // given
-        User user = userRepository.save(new User("auth|ticket", "ticket@test.com", "티켓사용자"));
+        User user = userRepository.save(new User("auth|ticket", "ticket@test.com", "티켓사용자", SubscriptionPlan.FREE));
         // 두 개의 거래 내역 객체를 생성. (TicketTransaction 클래스가 아직 없어 에러 발생)
         TicketTransaction refill = new TicketTransaction(user, TicketTransaction.TransactionType.REFILL, 5, 0, 5, "자동 충전");
         TicketTransaction consume = new TicketTransaction(user, TicketTransaction.TransactionType.CONSUME, -1, 5, 4, "미션 시작");

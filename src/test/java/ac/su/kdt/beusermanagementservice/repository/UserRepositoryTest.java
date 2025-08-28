@@ -1,6 +1,7 @@
 package ac.su.kdt.beusermanagementservice.repository;
 
-import ac.su.kdt.beusermanagementservice.entity.User; // 아직 User 클래스가 없어 에러 발생
+import ac.su.kdt.beusermanagementservice.entity.User;
+import ac.su.kdt.beusermanagementservice.entity.SubscriptionPlan; // 아직 User 클래스가 없어 에러 발생
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,7 @@ class UserRepositoryTest {
     void saveAndFindByAuth0Id() {
         // given
         // User 클래스의 생성자를 사용하여 새로운 사용자 객체를 생성 (아직 User 클래스가 없어 에러 발생)
-        User newUser = new User("auth0|test-user-123", "test@example.com", "테스트유저");
+        User newUser = new User("auth0|test-user-123", "test@example.com", "테스트유저", SubscriptionPlan.FREE);
 
         // when
         // userRepository의 save 메서드를 호출하여 newUser 객체를 데이터베이스에 저장

@@ -1,6 +1,7 @@
 package ac.su.kdt.beusermanagementservice.controller;
 
 import ac.su.kdt.beusermanagementservice.entity.User;
+import ac.su.kdt.beusermanagementservice.entity.SubscriptionPlan;
 import ac.su.kdt.beusermanagementservice.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,8 +53,8 @@ class UserControllerTest {
     @BeforeEach
     void setUp() {
         userRepository.deleteAll();
-        testUser = userRepository.save(new User("auth|testuser", "test@test.com", "테스트유저"));
-        testStudent = userRepository.save(new User("auth|teststudent", "student@test.com", "테스트학생"));
+        testUser = userRepository.save(new User("auth|testuser", "test@test.com", "테스트유저", SubscriptionPlan.FREE));
+        testStudent = userRepository.save(new User("auth|teststudent", "student@test.com", "테스트학생", SubscriptionPlan.FREE));
     }
 
     @Test

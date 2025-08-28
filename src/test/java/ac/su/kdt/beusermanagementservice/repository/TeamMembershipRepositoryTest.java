@@ -3,6 +3,7 @@ package ac.su.kdt.beusermanagementservice.repository;
 import ac.su.kdt.beusermanagementservice.entity.Team;
 import ac.su.kdt.beusermanagementservice.entity.TeamMembership;
 import ac.su.kdt.beusermanagementservice.entity.User;
+import ac.su.kdt.beusermanagementservice.entity.SubscriptionPlan;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +21,8 @@ class TeamMembershipRepositoryTest {
     @DisplayName("팀 멤버십 저장 및 관계 확인 테스트")
     void saveTeamMembership() {
         // given
-        User instructor = userRepository.save(new User("auth|ins", "ins@test.com", "강사"));
-        User student = userRepository.save(new User("auth|stu", "stu@test.com", "학생"));
+        User instructor = userRepository.save(new User("auth|ins", "ins@test.com", "강사", SubscriptionPlan.FREE));
+        User student = userRepository.save(new User("auth|stu", "stu@test.com", "학생", SubscriptionPlan.FREE));
         Team team = teamRepository.save(new Team("KDT팀", "KDTTEAM", instructor.getId()));
         TeamMembership membership = new TeamMembership(team, student);
 

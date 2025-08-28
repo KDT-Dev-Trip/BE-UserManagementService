@@ -17,10 +17,11 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
-    @Column(name = "auth0_id", unique = true, nullable = false)
-    private String auth0Id;
+    @Column(unique = true, nullable = true, name = "auth_user_id")
+    private String authUserId;
 
     @Column(unique = true, nullable = false)
     private String email;
@@ -57,8 +58,8 @@ public class User {
     private SubscriptionPlan subscriptionPlan;
 
 
-    public User(String auth0Id, String email, String name, SubscriptionPlan subscriptionPlan) {
-        this.auth0Id = auth0Id;                     // Auth0 ID
+    public User(String authUserId, String email, String name, SubscriptionPlan subscriptionPlan) {
+        this.authUserId = authUserId;               // Auth 서비스의 사용자 ID
         this.email = email;                         // 이메일
         this.name = name;                           // 이름
         this.role = Role.STUDENT;                   // 기본 역할은 학생

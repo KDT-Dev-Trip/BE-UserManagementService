@@ -1,6 +1,7 @@
 package ac.su.kdt.beusermanagementservice.service;
 
 import ac.su.kdt.beusermanagementservice.entity.User;
+import ac.su.kdt.beusermanagementservice.entity.SubscriptionPlan;
 import ac.su.kdt.beusermanagementservice.repository.TicketTransactionRepository;
 import ac.su.kdt.beusermanagementservice.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -30,7 +31,7 @@ class TicketServiceTest {
     void consumeTicket_success() {
         // given
         final Long userId = 1L;
-        given(userRepository.findById(userId)).willReturn(Optional.of(new User("auth|1", "test@test.com", "user")));
+        given(userRepository.findById(userId)).willReturn(Optional.of(new User("auth|1", "test@test.com", "user", SubscriptionPlan.FREE)));
         given(ticketTransactionRepository.findCurrentTicketBalanceByUserId(userId)).willReturn(Optional.of(3));
         // when
         ticketService.consumeTicket(userId, "미션 시작");
@@ -43,7 +44,7 @@ class TicketServiceTest {
     void consumeTicket_fail_insufficientTickets() {
         // given
         final Long userId = 1L;
-        given(userRepository.findById(userId)).willReturn(Optional.of(new User("auth|1", "test@test.com", "user")));
+        given(userRepository.findById(userId)).willReturn(Optional.of(new User("auth|1", "test@test.com", "user", SubscriptionPlan.FREE)));
         given(ticketTransactionRepository.findCurrentTicketBalanceByUserId(userId)).willReturn(Optional.of(0));
         // when & then
         assertThrows(IllegalStateException.class, () -> ticketService.consumeTicket(userId, "미션 시작"));

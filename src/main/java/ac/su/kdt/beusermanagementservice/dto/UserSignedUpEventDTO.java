@@ -1,10 +1,15 @@
 package ac.su.kdt.beusermanagementservice.dto;
 
-import ac.su.kdt.beusermanagementservice.entity.SubscriptionPlan;
+import java.time.LocalDateTime;
 
 public record UserSignedUpEventDTO(
-        String auth0Id,
+        String authUserId,           // Auth 서비스의 UUID
         String email,
         String name,
-        SubscriptionPlan subscriptionPlan // ## 사용자가 가입 시 선택한 구독 플랜 정보
+        String planType,            // 구독 플랜 타입
+        LocalDateTime signupTimestamp,
+        String source,              // "EMAIL", "GOOGLE", "GITHUB" 등
+        String socialProvider,      // 소셜 로그인 제공자
+        String ipAddress,           // IP 주소
+        long timestamp              // 타임스탬프
 ) {}

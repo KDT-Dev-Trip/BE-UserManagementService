@@ -8,7 +8,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,32 +27,39 @@ public class KafkaConsumerConfig {
 
     @Bean
     public ConsumerFactory<String, Object> consumerFactory() {
-        // Kafka Consumer의 설정을 담을 Map 객체를 생성
         Map<String, Object> props = new HashMap<>();
-        // Kafka 브로커 주소 설정
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        // 컨슈머 그룹 ID 설정
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-        // 메시지 키 역직렬화 클래스 설정
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        // 메시지 값 역직렬화 클래스 설정 (JSON)
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
-
+        
+        // ErrorHandlingDeserializer 사용하여 역직렬화 에러 처리
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        
+        // 실제 역직렬화를 담당할 클래스들 지정
+        props.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class.getName());
+        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class.getName());
+        
+        // JsonDeserializer 설정
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-
-        // 기본 타입을 지정
-        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "ac.su.kdt.beusermanagementservice.dto.UserSignedUpEventDTO");
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, "false");
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "java.lang.Object");
+        
+        // 오프셋 설정 - 에러가 발생해도 다음 메시지로 진행
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
 
-        // 설정 정보를 담은 DefaultKafkaConsumerFactory 객체를 생성하여 반환
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
-        // KafkaListener가 메시지를 수신할 때 사용될 컨테이너를 생성하는 팩토리
         ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
+        
+        // 에러 핸들러 설정 - 에러 발생 시 로그만 남기고 계속 진행
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(new FixedBackOff(1000L, 3));
+        factory.setCommonErrorHandler(errorHandler);
+        
         return factory;
     }
 }

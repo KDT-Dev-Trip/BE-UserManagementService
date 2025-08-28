@@ -3,6 +3,7 @@ package ac.su.kdt.beusermanagementservice.service;
 
 import ac.su.kdt.beusermanagementservice.dto.UserSignedUpEventDTO; // 아직 DTO가 없어 에러 발생
 import ac.su.kdt.beusermanagementservice.entity.User;
+import ac.su.kdt.beusermanagementservice.entity.SubscriptionPlan;
 import ac.su.kdt.beusermanagementservice.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ class UserServiceTest {
     @DisplayName("신규 회원가입 이벤트 수신 시 사용자 프로필 생성 성공 테스트")
     void registerNewUser_whenNewUser_shouldSaveUser() {
         // given
-        UserSignedUpEventDTO event = new UserSignedUpEventDTO("auth0|new", "new@test.com", "신규유저");
+        UserSignedUpEventDTO event = new UserSignedUpEventDTO("auth0|new", "new@test.com", "신규유저", SubscriptionPlan.FREE);
         // 아직 가입되지 않은 사용자임을 시뮬레이션
         given(userRepository.findByAuth0Id(event.auth0Id())).willReturn(Optional.empty());
 
@@ -46,8 +47,8 @@ class UserServiceTest {
     @DisplayName("중복 회원가입 이벤트 수신 시 사용자 프로필 생성 안함 테스트 (멱등성)")
     void registerNewUser_whenExistingUser_shouldNotSaveUser() {
         // given
-        UserSignedUpEventDTO event = new UserSignedUpEventDTO("auth0|existing", "exist@test.com", "기존유저");
-        given(userRepository.findByAuth0Id(event.auth0Id())).willReturn(Optional.of(new User(event.auth0Id(), event.email(), event.name())));
+        UserSignedUpEventDTO event = new UserSignedUpEventDTO("auth0|existing", "exist@test.com", "기존유저", SubscriptionPlan.FREE);
+        given(userRepository.findByAuth0Id(event.auth0Id())).willReturn(Optional.of(new User(event.auth0Id(), event.email(), event.name(), SubscriptionPlan.FREE)));
 
         // when
         userService.registerNewUser(event);
