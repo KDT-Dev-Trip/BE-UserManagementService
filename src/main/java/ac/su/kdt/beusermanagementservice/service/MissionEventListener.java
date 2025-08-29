@@ -18,7 +18,7 @@ public class MissionEventListener {
     /**
      * 미션 일시정지 이벤트 처리 - 사용자 서비스 관점
      */
-    @KafkaListener(topics = "mission-events", groupId = "user-service-mission-group")
+    @KafkaListener(topics = "${kafka.topics.mission-events}", groupId = "user-service-mission-group")
     public void handleMissionEvent(Map<String, Object> eventData) {
         String eventType = (String) eventData.get("eventType");
         

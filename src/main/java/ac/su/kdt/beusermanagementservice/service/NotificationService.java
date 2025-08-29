@@ -233,6 +233,22 @@ public class NotificationService {
     }
     
     /**
+     * 사용자에게 알림 전송 (일반적인 알림)
+     */
+    public void sendNotificationToUser(Long userId, String title, String message) {
+        log.info("Sending notification to user: {}, title: {}, message: {}", userId, title, message);
+        simulateNotificationSend("USER_NOTIFICATION", userId, null, title + ": " + message);
+    }
+    
+    /**
+     * 관리자 경고 알림 전송
+     */
+    public void sendAdminAlert(String title, String message) {
+        log.warn("Sending admin alert - title: {}, message: {}", title, message);
+        simulateNotificationSend("ADMIN_ALERT", null, "admin@system.com", title + ": " + message);
+    }
+
+    /**
      * 이메일 마스킹 (개인정보 보호)
      */
     private String maskEmail(String email) {

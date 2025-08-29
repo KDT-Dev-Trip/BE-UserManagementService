@@ -18,7 +18,7 @@ public class EvaluationEventListener {
     /**
      * AI 평가 이벤트 처리 - 사용자 서비스 관점
      */
-    @KafkaListener(topics = "evaluation-events", groupId = "user-service-evaluation-group")
+    @KafkaListener(topics = "${kafka.topics.evaluation-events}", groupId = "user-service-evaluation-group")
     public void handleEvaluationEvent(Map<String, Object> eventData) {
         String eventType = (String) eventData.get("eventType");
         

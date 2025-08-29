@@ -27,7 +27,7 @@ public class KafkaConsumerService {
     // 실제 비즈니스 로직을 처리할 UserService에 대한 의존성을 주입 받음
     private final UserService userService;
 
-    @KafkaListener(topics = "auth-events", groupId = "${spring.kafka.consumer.group-id}")
+    @KafkaListener(topics = "${kafka.topics.auth-events}", groupId = "${spring.kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
     public void consumeAuthEvents(ConsumerRecord<String, Object> record) {
         logger.info("=== Kafka 이벤트 수신 시작 ===");
         logger.info("ConsumerRecord: topic={}, partition={}, offset={}", record.topic(), record.partition(), record.offset());
@@ -187,7 +187,7 @@ public class KafkaConsumerService {
     }
 
     // subscription-events 토픽을 구독하여 플랜 변경 처리
-    @KafkaListener(topics = "subscription-events", groupId = "${spring.kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
+    @KafkaListener(topics = "${kafka.topics.subscription-events}", groupId = "${spring.kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
     public void consumeSubscriptionChangedEvent(@Payload(required = false) SubscriptionChangedEventDTO event) {
         if (event == null) { // 비어있는 메시지 무시
             logger.warn("Null 또는 비어있는 SubscriptionChangedEvent 메시지를 수신하여 무시합니다.");

@@ -157,4 +157,66 @@ public class UserEventPublisher {
         );
         publishUserSettingsChangedEvent(event);
     }
+    
+    /**
+     * 사용자 활동 이벤트 발행
+     */
+    public void publishUserActivityEvent(Long userId, String activityType, Map<String, Object> activityData) {
+        log.info("Publishing user activity event for userId: {}, type: {}", userId, activityType);
+        try {
+            Map<String, Object> eventData = Map.of(
+                "userId", userId,
+                "activityType", activityType,
+                "activityData", activityData,
+                "timestamp", System.currentTimeMillis()
+            );
+            
+            CompletableFuture<SendResult<String, Object>> future = 
+                    kafkaTemplate.send(USER_EVENTS_TOPIC, userId.toString(), eventData);
+            
+            future.whenComplete((result, exception) -> {
+                if (exception != null) {
+                    log.error("Failed to publish UserActivityEvent for userId: {}, type: {}", 
+                             userId, activityType, exception);
+                } else {
+                    log.info("Successfully published UserActivityEvent for userId: {}, type: {}", 
+                             userId, activityType);
+                }
+            });
+        } catch (Exception e) {
+            log.error("Error publishing UserActivityEvent for userId: {}, type: {}", 
+                     userId, activityType, e);
+        }
+    }
+    
+    /**
+     * 사용자 통계 업데이트 이벤트 발행
+     */
+    public void publishUserStatsUpdateEvent(Long userId, String updateType, Map<String, Object> statsData) {
+        log.info("Publishing user stats update event for userId: {}, type: {}", userId, updateType);
+        try {
+            Map<String, Object> eventData = Map.of(
+                "userId", userId,
+                "updateType", updateType,
+                "statsData", statsData,
+                "timestamp", System.currentTimeMillis()
+            );
+            
+            CompletableFuture<SendResult<String, Object>> future = 
+                    kafkaTemplate.send(USER_EVENTS_TOPIC, userId.toString(), eventData);
+            
+            future.whenComplete((result, exception) -> {
+                if (exception != null) {
+                    log.error("Failed to publish UserStatsUpdateEvent for userId: {}, type: {}", 
+                             userId, updateType, exception);
+                } else {
+                    log.info("Successfully published UserStatsUpdateEvent for userId: {}, type: {}", 
+                             userId, updateType);
+                }
+            });
+        } catch (Exception e) {
+            log.error("Error publishing UserStatsUpdateEvent for userId: {}, type: {}", 
+                     userId, updateType, e);
+        }
+    }
 }

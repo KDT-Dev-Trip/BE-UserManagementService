@@ -19,7 +19,7 @@ public class PaymentEventListener {
     private final NotificationService notificationService;
     private final UserEventPublisher userEventPublisher;
     
-    @KafkaListener(topics = "payment-events", groupId = "user-service-payment-group")
+    @KafkaListener(topics = "${kafka.topics.payment-events}", groupId = "user-service-payment-group")
     public void handlePaymentEvent(@Payload Map<String, Object> eventData) {
         try {
             String eventType = (String) eventData.get("event_type");
@@ -69,7 +69,9 @@ public class PaymentEventListener {
                     userId, 
                     user != null ? user.getAuthUserId() : userId.toString(),
                     email,
-                    Map.of("subscription_status", Map.of("old", "active", "new", "suspended"))
+                    "subscription_status",
+                    Map.of("old", "active"),
+                    Map.of("new", "suspended")
                 );
             }
         } catch (Exception e) {
@@ -173,10 +175,9 @@ public class PaymentEventListener {
                     userId,
                     user.getAuthUserId(),
                     email,
-                    Map.of(
-                        "low_balance_alert", Map.of("balance", currentBalance, "threshold", thresholdLimit),
-                        "last_low_balance_alert", Map.of("timestamp", System.currentTimeMillis())
-                    )
+                    "balance_alerts",
+                    Map.of("low_balance_alert", Map.of("balance", currentBalance, "threshold", thresholdLimit)),
+                    Map.of("last_low_balance_alert", Map.of("timestamp", System.currentTimeMillis()))
                 );
             }
             

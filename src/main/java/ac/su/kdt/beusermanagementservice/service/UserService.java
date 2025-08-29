@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 
@@ -96,11 +97,17 @@ public class UserService {
         
         // 변경사항 추적
         Map<String, Object> changes = new HashMap<>();
-        if (!user.getName().equals(request.name())) {
-            changes.put("name", Map.of("old", user.getName(), "new", request.name()));
+        if (!Objects.equals(user.getName(), request.name())) {
+            Map<String, Object> nameChange = new HashMap<>();
+            nameChange.put("old", user.getName());
+            nameChange.put("new", request.name());
+            changes.put("name", nameChange);
         }
-        if (!user.getPhone().equals(request.phone())) {
-            changes.put("phone", Map.of("old", user.getPhone(), "new", request.phone()));
+        if (!Objects.equals(user.getPhone(), request.phone())) {
+            Map<String, Object> phoneChange = new HashMap<>();
+            phoneChange.put("old", user.getPhone());
+            phoneChange.put("new", request.phone());
+            changes.put("phone", phoneChange);
         }
         
         // 2. 엔티티 내부에 상태 변경 로직을 위임. (엔티티에 updateProfile 메서드 추가 필요)
@@ -557,9 +564,9 @@ public class UserService {
         if (planName == null) return SubscriptionPlan.FREE;
         
         return switch (planName.toUpperCase()) {
-            case "ECONOMY_CLASS", "ECONOMY" -> SubscriptionPlan.ECONOMY;
-            case "BUSINESS_CLASS", "BUSINESS" -> SubscriptionPlan.BUSINESS;
-            case "FIRST_CLASS", "FIRST" -> SubscriptionPlan.FIRST;
+            case "ECONOMY_CLASS", "ECONOMY" -> SubscriptionPlan.FREE;
+            case "BUSINESS_CLASS", "BUSINESS" -> SubscriptionPlan.BASIC;
+            case "FIRST_CLASS", "FIRST" -> SubscriptionPlan.PRO;
             case "ENTERPRISE_CLASS", "ENTERPRISE" -> SubscriptionPlan.ENTERPRISE;
             default -> SubscriptionPlan.FREE;
         };

@@ -49,7 +49,14 @@ public class TeamService {
 
         // Kafka로 TeamCreatedEvent 발행 로직
         // 1). 다른 서비스에 전달할 이벤트 DTO를 생성
-        TeamCreatedEventDTO event = new TeamCreatedEventDTO(newTeam.getId(), newTeam.getName(), instructorId);
+        TeamCreatedEventDTO event = TeamCreatedEventDTO.createDefault(
+            newTeam.getId(), 
+            instructorId, 
+            instructorId.toString(), 
+            newTeam.getName(), 
+            newTeam.getDescription(), 
+            newTeam.getMaxMembers()
+        );
         // 2). kafkaTemplate.send() 메서드를 사용하여 지정된 토픽으로 이벤트를 발행(전송)
         kafkaTemplate.send(TEAM_EVENTS_TOPIC, event);
 
