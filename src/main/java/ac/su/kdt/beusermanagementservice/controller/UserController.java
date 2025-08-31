@@ -133,4 +133,20 @@ public class UserController {
                     ));
         }
     }
+
+    // GET /api/users/list
+    @GetMapping("/list")
+    @Operation(summary = "Get User List", description = "테스트용: 모든 사용자 목록을 조회합니다.")
+    public ResponseEntity<?> getUserList() {
+        try {
+            var userList = userService.getAllUsers();
+            return ResponseEntity.ok(userList);
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                    .body(Map.of(
+                        "error", "USER_LIST_ERROR", 
+                        "message", "사용자 목록 조회 중 오류 발생: " + e.getMessage()
+                    ));
+        }
+    }
 }

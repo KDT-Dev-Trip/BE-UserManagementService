@@ -480,6 +480,17 @@ public class UserService {
     }
     
     /**
+     * 모든 사용자 목록 조회 (테스트용)
+     */
+    @Transactional(readOnly = true)
+    public List<UserProfileResponseDTO> getAllUsers() {
+        List<User> users = userRepository.findAll();
+        return users.stream()
+                .map(UserProfileResponseDTO::from)
+                .collect(Collectors.toList());
+    }
+    
+    /**
      * 사용자 로그아웃 이벤트 처리
      */
     @Transactional
