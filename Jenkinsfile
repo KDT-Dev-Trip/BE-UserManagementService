@@ -70,7 +70,7 @@ pipeline {
                 always {
                     script {
                         try {
-                            publishTestResults testResultsPattern: 'build/test-results/test/*.xml'
+                            junit testResultsPattern: 'build/test-results/test/*.xml', allowEmptyResults: true
                         } catch (Exception e) {
                             echo "Test report publishing failed: ${e.getMessage()}"
                         }
