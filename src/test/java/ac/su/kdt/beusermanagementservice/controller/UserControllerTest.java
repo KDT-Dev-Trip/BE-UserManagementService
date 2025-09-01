@@ -24,13 +24,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.RestTemplate;
 import static org.mockito.BDDMockito.given;  // BDDMockito의 given()을 사용하기 위한 static import
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;  // 응답 결과를 콘솔에 출력하여 디버깅하기 위한 static import
 
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.profiles.active=test")
 @AutoConfigureMockMvc
 @Transactional
 class UserControllerTest {
@@ -44,7 +44,7 @@ class UserControllerTest {
 
     private User testUser; // 여러 테스트에서 공통으로 사용할 사용자 객체
 
-    @MockBean
+    @MockitoBean
     private RestTemplate restTemplate;
 
     private User testStudent;
